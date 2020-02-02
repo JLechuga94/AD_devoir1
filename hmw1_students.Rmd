@@ -159,9 +159,15 @@ Use aesthetics to distinguish years. You will need to categorize  the `Year`  co
 Pay attention to axes labels, to legends. Assess logarithmic scales.
 
 ```{r}
-data_f %>% # We are taking the categorical variables to change them to a factor and updating the dataset
+data_f%>%
   dplyr::mutate(Year = forcats::as_factor(Year)) -> data_f
-plot(x=data_f$Age[data_f$Year<1921], y =data_f$mx[data_f$Year<1921], col = "red", main = "Women Mortality Quotients", pch=19)
+
+plot(x=data_f$Age[data_f$Year == as.character(ww_I)], y =data_f$mx[data_f$Year == ww_I], col = "red", main = "Women Mortality Quotients", pch=20)
+ggplot(data_f, aes(x = Age, y = mx))
+xdata<-data_m$Age[data_m$Year<1921]
+ydata<-data_m$mx[data_m$Year<1921]
+
+plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=20)
 ```
 
 Plot mortality quotients (column `mx`) for men as a function of `Age` for  years `1913` up to `1921`.
@@ -173,8 +179,7 @@ using `%+%` from `ggplot`.
 xdata<-data_m$Age[data_m$Year<1921]
 ydata<-data_m$mx[data_m$Year<1921]
 
-plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=19)
-plot(x=data_m$Age[data_m$Year<1921], y =data_m$mx[data_m$Year<1921], col = "blue", main = "Men Mortality Quotients", pch=19)
+plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=20)
 ```
 
 ## Facetting
@@ -190,9 +195,11 @@ You may proceed as follows:- Add a character column "Sex" to `data_f` and `data_
 - Cast  column `Sex` as a factor.
 
 ```{r}
-data_f$Sex <- forcats::as_factor("Female")
-data_m$Sex <- forcats::as_factor("Male")
-big_data <- rbind(select(data_f, Year, Age, Sex), select(data_m, Year, Age, Sex))
+data_f$Sex <- "Female"
+data_m$Sex <- "Male"
+#big_data <- rbind(select(data_f, Year, Age, Sex), select(data_m, Year, Age, Sex))
+big_data <- rbind(data_f, data_m)
+big_data %>% dplyr::mutate(Sex = forcats::as_factor(Sex)) -> big_data
 big_data
 ```
 
@@ -201,6 +208,8 @@ years `1913` up to `1921` facet according to `Sex`.
 
 ```{r}
 # TODO:
+plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=20)
+barplot()
 ```
 
 Map `Sex` to some aesthetics and facet by `Year`.
@@ -213,7 +222,8 @@ List puzzling features on those plots.
 : TODO:
 
 Do you have clues about those puzzling aspects?
-: TODO:# Trends## Infant mortality ratePlot mortality quotients at ages $0, 1, 5$  as a function of time.
+: TODO:# Trends## Infant mortality rate
+Plot mortality quotients at ages $0, 1, 5$  as a function of time.
 Distinguish women and men.
 
 ```{r}
@@ -225,7 +235,8 @@ ages <- c(0, 1, 5)
 Can you match abrupt changes and historical events?
 : TODO:
 
-## As times goes byPlot mortality quotients at ages $15, 20, 40, 60$  as a function of time.
+## As times goes by 
+Plot mortality quotients at ages $15, 20, 40, 60$  as a function of time.
 Distinguish women and men.
 
 Note again that you may tweak the `ggplot` object you just created and feed it with new data
