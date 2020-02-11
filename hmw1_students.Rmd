@@ -1,7 +1,7 @@
 ---
 title: 'Homework I: Life Tables'
 subtitle: 'Cours: Analyse de Données M1 Mathématiques/M1 Mathématiques-Informatique'
-author: "LECHUGA Julian and Morakhovski Alexander"
+author: "LECHUGA Julian and MORAKHOVSKI Alexander"
 output:
   html_notebook: 
     code_folding: none
@@ -23,6 +23,7 @@ If you install and load package [https://cran.r-project.org/web/packages/demogra
 ```{r}
 pacman::p_load(tidyverse)
 pacman::p_load(tidymodels)
+library(dplyr)
 ```
 
 ## Life table inspection
@@ -46,10 +47,9 @@ country_code <- list(fr='FRACNP',
                      swe='SWE',
                      sp='ESP',
                      us='USA')
-
-country <- 'fr'
-
+country <- 'sp'
 ww_I <- 1913:1921
+
 #ww_I <- 1938:1946 # (US)
 ```
 
@@ -57,6 +57,14 @@ ww_I <- 1913:1921
 
 ```{r}
 # TODO:
+file_path <- sprintf("LIFE_TABLES/%s", country_code[country][1])
+data_f <- readr::read_delim(paste(file_path,".fltper_1x1.txt",sep=""), delim = " ", skip=2)
+data_m <- readr::read_delim(paste(file_path,".mltper_1x1.txt",sep=""), delim = " ", skip =2)
+data_b <- readr::read_delim(paste(file_path,".bltper_1x1.txt",sep=""), delim = " ", skip=2)
+data_f
+#data_m
+#data_b
+data_f[4,]
 ```
 
 For each life table, each row is identified by `Year` and `Age`.
@@ -64,23 +72,22 @@ Read the documentation and concisely explain the meaning of columns
 
 Check on [http://www.mortality.org](http://www.mortality.org) the meaning of the different columns:
 
-`mx`
-: TODO:
+`mx`: Central death rate between ages x and x+n. # of Individuals dead / # individuals living in that age group during that year. R = (dx/Lx)
 
-`qx`
-: TODO:
+`qx`: Probability of death between ages x and x+n. Probability of dying within 12 months after reaching age x, number of deaths divided by the total amount of individuals. R = (dx/lx)
 
-`ax`
-: TODO:
+`ax`: Average length of survival between ages x and x+n for persons dying in the interval. ???
 
-`lx`
-: TODO:
+`lx`: Number of survivors at exact age x, assuming l(0) = 100,000. Population of each age group that survived for that year. R = (previous lx-dx) 
 
-`dx`
-: TODO:
+`dx`: Number of deaths between ages x and x+n. Number of individuals that died for a specific age group in that year. 
+R = (qx*lx)
 
-`ex`:
-: TODO:
+`ex`: Life expectancy at exact age x (in years). Amount of additional years an individual in a specific age group is expected to live
+
+`Lx`: Number of person-years that lived between ages x and x+n
+
+`Tx`: Number of person-years remaining after exact age x. Number of individuals that are aged >= x. (Previous Tx - Previous Lx)
 
 
 - What is the class of `data_b, ...`?
@@ -88,10 +95,13 @@ Check on [http://www.mortality.org](http://www.mortality.org) the meaning of the
 
 ```{r}
 # TODO:
+class(data_f)
+class(data_m)
+class(data_b)
+glimpse(data_f)
 ```
 
 Which columns needs retyping?
-: TODO:
 
 ## Life table cleaning
 
@@ -107,9 +117,23 @@ some columns to `numeric`, others to `double`).
 
 ```{r}
 retype <- function(data){
-  # TODO:
+  #String cleaning
+  names(data)<-str_trim(names(data))
+  data<-data%>%
+    dplyr::mutate(Year=as.numeric(Year),
+                  Age=as.numeric(Age),
+                  mx=as.double(mx),
+                  qx=as.double(qx),
+                  ax=as.double(ax),
+                  lx=as.numeric(lx),
+                  dx=as.numeric(dx),
+                  Lx=as.numeric(Lx),
+                  Tx=as.numeric(Tx),
+                  ex=as.double(ex))
+  data
 }
 ```
+
 
 Useful tools:
 
@@ -118,7 +142,12 @@ Useful tools:
 - `dplyr::rename`Apply function `retype` to the three data.frames.
 
 ```{r}
-# TODO:
+data_f<-retype(data_f)
+data_m<-retype(data_m)
+data_b<-retype(data_b)
+head(data_f)
+head(data_m)
+head(data_b)
 ```
 
 # Hazard rates, mortality quotients
@@ -130,7 +159,15 @@ Use aesthetics to distinguish years. You will need to categorize  the `Year`  co
 Pay attention to axes labels, to legends. Assess logarithmic scales.
 
 ```{r}
-# TODO:
+data_f%>%
+  dplyr::mutate(Year = forcats::as_factor(Year)) -> data_f
+
+plot(x=data_f$Age[data_f$Year == as.character(ww_I)], y =data_f$mx[data_f$Year == ww_I], col = "red", main = "Women Mortality Quotients", pch=20)
+ggplot(data_f, aes(x = Age, y = mx))
+xdata<-data_m$Age[data_m$Year<1921]
+ydata<-data_m$mx[data_m$Year<1921]
+
+plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=20)
 ```
 
 Plot mortality quotients (column `mx`) for men as a function of `Age` for  years `1913` up to `1921`.
@@ -139,7 +176,10 @@ Note that you may tweak the `ggplot` object you just created and feed it with ne
 using `%+%` from `ggplot`.
 
 ```{r}
-# TODO:
+xdata<-data_m$Age[data_m$Year<1921]
+ydata<-data_m$mx[data_m$Year<1921]
+
+plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=20)
 ```
 
 ## Facetting
@@ -155,7 +195,12 @@ You may proceed as follows:- Add a character column "Sex" to `data_f` and `data_
 - Cast  column `Sex` as a factor.
 
 ```{r}
-# TODO:
+data_f$Sex <- "Female"
+data_m$Sex <- "Male"
+#big_data <- rbind(select(data_f, Year, Age, Sex), select(data_m, Year, Age, Sex))
+big_data <- rbind(data_f, data_m)
+big_data %>% dplyr::mutate(Sex = forcats::as_factor(Sex)) -> big_data
+big_data
 ```
 
 Plot mortality quotients (column `mx`) as a function of `Age` for
@@ -163,6 +208,8 @@ years `1913` up to `1921` facet according to `Sex`.
 
 ```{r}
 # TODO:
+plot(x=xdata, y=ydata, col = "blue", xlab="Age", ylab="Rate",sub="Years 1913-1921", main = "Men Mortality Quotients", pch=20)
+barplot()
 ```
 
 Map `Sex` to some aesthetics and facet by `Year`.
@@ -175,7 +222,8 @@ List puzzling features on those plots.
 : TODO:
 
 Do you have clues about those puzzling aspects?
-: TODO:# Trends## Infant mortality ratePlot mortality quotients at ages $0, 1, 5$  as a function of time.
+: TODO:# Trends## Infant mortality rate
+Plot mortality quotients at ages $0, 1, 5$  as a function of time.
 Distinguish women and men.
 
 ```{r}
@@ -187,7 +235,8 @@ ages <- c(0, 1, 5)
 Can you match abrupt changes and historical events?
 : TODO:
 
-## As times goes byPlot mortality quotients at ages $15, 20, 40, 60$  as a function of time.
+## As times goes by 
+Plot mortality quotients at ages $15, 20, 40, 60$  as a function of time.
 Distinguish women and men.
 
 Note again that you may tweak the `ggplot` object you just created and feed it with new data
