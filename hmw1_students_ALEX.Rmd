@@ -1,0 +1,393 @@
+---
+title: 'Homework I: Life Tables'
+subtitle: 'Cours: Analyse de Données M1 Mathématiques/M1 Mathématiques-Informatique'
+author: "Julian Lechuga and Alexander Morakhovski"
+output:
+  html_notebook: 
+    code_folding: none
+    number_sections: yes
+    toc: yes
+---
+
+# Objectives
+
+This notebook aims at
+
+- working with **tables** (`data.frames`, `tibbles`, `data.tables`, ...) using `dplyr` or any other query language (as provided for example by `data.table`)
+- visualizing demographic data as provided by [Human Mortality Database organization](https://www.mortality.org).# Life dataLife data tables can be downloaded from [https://www.mortality.org](https://www.mortality.org). Some data have been downloaded for you and are available [here]().
+
+See also [https://www.lifetable.de](https://www.lifetable.de).
+
+If you install and load package [https://cran.r-project.org/web/packages/demography/index.html](https://cran.r-project.org/web/packages/demography/index.html), you will also find life data tables.
+
+```{r}
+pacman::p_load(tidyverse)
+pacman::p_load(tidymodels)
+library(dplyr)
+library(viridis)
+```
+
+## Life table inspection
+
+Load the data corresponding to the country you are supposed to work on.You may use `readr::read_delim()` with appropriate options.
+
+For  country denoted by country code `xxx`, you will load three life tables:
+
+- `xxx.fltper_1x1.txt` where `f` stands for _female_
+- `xxx.mltper_1x1.txt` where `m` stands for _male_
+- `xxx.bltper_1x1.txt` where `b` stands for _both_
+
+Name the data.frames `data_f`, `data_m`, `data_b`.
+
+```{r}
+country_code <- list(fr='FRACNP',
+                     be='BEL',
+                     gb='GBRTENW',
+                     nl='NLD',
+                     it='ITA',
+                     swe='SWE',
+                     sp='ESP',
+                     us='USA')
+
+country <- 'fr'
+
+ww_I <- 1913:1921
+#ww_I <- 1938:1946 # (US)
+```
+
+
+
+```{r}
+# TODO
+data_f <- readr::read_delim(paste("LIFE_TABLES/FRACNP.fltper_1x1.txt",sep=""), delim = " ")
+data_m <- readr::read_delim(paste("LIFE_TABLES/FRACNP.mltper_1x1.txt",sep=""), delim = " ")
+data_b <- readr::read_delim(paste("LIFE_TABLES/FRACNP.fltper_1x1.txt",sep=""), delim = " ")
+data_f
+#data_m
+#data_b
+```
+
+For each life table, each row is identified by `Year` and `Age`.
+Read the documentation and concisely explain the meaning of columns
+
+Check on [http://www.mortality.org](http://www.mortality.org) the meaning of the different columns:
+
+`mx`
+: TODO:
+The number of deaths during the year divided by the
+average number alive during the year
+`qx`
+: TODO:
+The number of deaths during the
+year divided by the number alive at the beginning of the year.
+
+`ax`
+: TODO:
+Average length of survival between ages x and x+1 for persons dying in the interval
+
+`lx`
+: TODO:
+The number of persons surviving to exact age x
+
+`dx`
+: TODO:
+Number of deaths between ages x and x+1
+
+`ex`:
+: TODO:
+Life expectancy at exact age x (in years)
+
+- What is the class of `data_b, ...`?
+- Inspect `data_f` using `glimpse`.
+
+```{r}
+# TODO:
+class(data_b)
+glimpse(data_f)
+```
+
+Which columns needs retyping?
+: TODO:
+None
+
+## Life table cleaning
+
+Remove white spaces from column names. You may find useful functions in package `stringr`.
+Try to follow the **DRY** principle (Don't Repeat Yourself).
+You need to perform the same operation on every column name.
+
+You may use fonctional programming (using `purrr::` or `plyr::`)
+to process all column names of `data_xxx` using one expression.
+Some verbs in `dplyr::` provide you with shortcuts.Write a function `retype` that can tidy data.frames
+with the same schema as `data_xxx` (cleaning column names if necessary, casting
+some columns to `numeric`, others to `double`).
+
+```{r}
+retype <- function(data){
+  #String cleaning
+  names(data)<-str_trim(names(data))
+  data$Age<-str_trim(data$Age)
+  data<-data%>%
+    dplyr::mutate(Year=as.numeric(Year),
+                  Age=forcats::as_factor(Age),
+                  mx=as.double(mx),
+                  qx=as.double(qx),
+                  ax=as.double(ax),
+                  lx=as.numeric(lx),
+                  dx=as.numeric(dx),
+                  Lx=as.numeric(Lx),
+                  Tx=as.numeric(Tx),
+                  ex=as.double(ex))
+  data
+}
+```
+
+Useful tools:
+
+- `dplyr::mutate_at`
+- `dplyr::rename`
+- `dplyr::rename`Apply function `retype` to the three data.frames.
+
+```{r}
+# TODO:
+data_f<-retype(data_f)
+data_m<-retype(data_m)
+data_b<-retype(data_b)
+head(data_f)
+head(data_m)
+head(data_b)
+
+glimpse(data_f)
+
+```
+
+# Hazard rates, mortality quotients
+
+Plot mortality quotients (column `mx`) for women as a function of `Age` for  years `1913` up to `1921`.
+Use aesthetics to distinguish years. You will need to categorize  the `Year`  column
+(`forcats::` may be helpful).
+
+Pay attention to axes labels, to legends. Assess logarithmic scales.
+
+```{r}
+# TODO:
+glimpse(data_f)
+data_f %>% 
+dplyr::filter(Year %in% ww_I) %>%
+ggplot(mapping= aes(colour = forcats::as_factor(Year),x=Age,y=mx)) +  
+geom_point()+ xlab("Age")+ ylab("Mortality Quotients") +ggtitle(paste("Mortality Quotients as a function of Age during the First World War"))+scale_x_discrete(breaks=data_f$Age[seq(1,111,by=10)]) + scale_y_log10()+theme_bw()+labs(colour="Year")
+
+```
+
+Plot mortality quotients (column `mx`) for men as a function of `Age` for  years `1913` up to `1921`.
+
+Note that you may tweak the `ggplot` object you just created and feed it with new data
+using `%+%` from `ggplot`.
+
+```{r}
+# TODO:
+dplyr::filter(data_m, Year %in% ww_I) -> sub_sample
+ggplot(sub_sample, mapping= aes(colour = forcats::as_factor(Year),x=Age,y=mx)) +   
+geom_point()+ scale_x_discrete(breaks=data_m$Age[seq(1,111,by=10)])+ scale_y_log10()+theme_bw()+labs(colour="Year",y = "Mortality Quotient")
+
+```
+
+## Facetting
+
+Build a data.frame called `big_data`, where rows are
+identified by `Year, Age, Sex` and comes either
+from `data_f` or `data_m`. Column `Sex` should be a `factor`
+with two levels called `Male` and `Female`.
+
+You may proceed as follows:- Add a character column "Sex" to `data_f` and `data_m`.
+
+  - Stack the two data.frames (using `rbind`) into data.frame named `big_data`.
+- Cast  column `Sex` as a factor.
+
+```{r}
+# TODO:
+data_f$Sex='Female'
+data_m$Sex='Male'
+data_f$Sex <- as.factor(data_f$Sex)
+data_m$Sex <- as.factor(data_m$Sex)
+
+big_data<-rbind(data_f, data_m)
+glimpse(big_data)
+```
+
+Plot mortality quotients (column `mx`) as a function of `Age` for
+years `1913` up to `1921` facet according to `Sex`.
+
+```{r}
+# TODO:
+dplyr::filter(big_data, Year %in% ww_I) -> sub_sample
+sub_sample<-dplyr::mutate(sub_sample,Year=as.factor(Year))
+ggplot(sub_sample, mapping= aes(colour = Year,x=Age,y=mx)) +   
+geom_point()+ scale_x_discrete(breaks=big_data$Age[seq(1,111,by=10)])+ scale_y_log10()+facet_wrap(~ Sex)
+summary(big_data$Age)
+levels(big_data$Age)
+nlevels(big_data$Age)
+
+```
+
+Map `Sex` to some aesthetics and facet by `Year`.
+
+```{r}
+# TODO:
+dplyr::filter(big_data, Year %in% ww_I) -> sub_sample
+sub_sample<-dplyr::mutate(sub_sample,Year=as.factor(Year))
+ggplot(sub_sample, mapping= aes(colour = Sex,x=Age,y=mx)) +   
+geom_point()+ scale_x_discrete(breaks=sub_sample$Age[seq(1,111,by=10)])+ scale_y_log10()+facet_wrap(~ Year)
+
+```
+
+List puzzling features on those plots.
+: TODO:
+A lot of people die at around 20-30 (men especially) because of the war
+
+Do you have clues about those puzzling aspects?
+Died in the second world war
+
+TODO:# Trends## Infant mortality ratePlot mortality quotients at ages $0, 1, 5$  as a function of time.
+Distinguish women and men.
+
+```{r}
+dplyr::filter(big_data, Age %in% c(0,1,5)) -> infant
+glimpse(big_data)
+p<-ggplot(mapping= aes(colour = Sex,x=Year,y=mx)) +   
+  geom_point() +
+  facet_wrap(~ Age)
+p%+%infant
+# TODO:
+```
+
+Can you match abrupt changes and historical events?
+: TODO:
+The spanish flu outbreak of 1918 killed a lot of people and infants. 
+
+## As times goes byPlot mortality quotients at ages $15, 20, 40, 60$  as a function of time.
+Distinguish women and men.
+
+Note again that you may tweak the `ggplot` object you just created and feed it with new data
+using `%+%` from `ggplot`.
+
+```{r}
+ages <- c(15, 20, 40, 60)
+dplyr::filter(big_data, Age %in% ages) -> infant2
+p%+%infant2
+# TODO:
+```
+
+TODO:
+: List puzzling features
+In some years the mortality quotient increases abruptly. This is due to wars, famine and disease outbreaks. 
+## Mortality quotients
+
+  - Plot mortality quotient as a function of age for years $1825, 1850, 1875, \ldots, 2000$, facet with respect to `Sex`
+- Compare different scales (logarithmic or linear) on the different axes
+
+```{r}
+years <- seq(1825, 2000, by = 25)
+dplyr::filter(big_data, Year %in% years) -> mq
+ggplot(mq, mapping= aes(x=Age,y=mx)) +   
+  geom_point(aes(colour= forcats::as_factor( Year))) +scale_x_discrete(breaks=sub_sample$Age[seq(1,111,by=10)])+ scale_y_log10()+
+  facet_wrap(~ Sex)
+
+# TODO:
+```
+
+# Rearrangement
+
+From data.frame `data_m, data_f`, extract a numerical matrix `A` where rows correspond to year (say `t`), columns to age (say `x`), and entry
+for year `t` and age `x` is the mortality quotient at age `x` for year `t`. Finally, we take logarithms:  $A_{t,x} = \log m_{t,x}$.
+
+You may use functions `pivot_wider`, `pivot_longer` from `tidyr::` package.
+
+```{r}
+# TODO
+pivot<- function(data){
+  data%>%
+  select(Age,mx,Year) %>% tidyr::pivot_wider(names_from = Age, values_from = mx) %>%
+  column_to_rownames(var = "Year") -> pivot1
+  pivot1=data.matrix(pivot1)
+  pivot1
+  }
+
+pivot(data_f) -> pivot1
+
+
+
+```
+
+> Factorizations of $A$ play a significant role in demographic modeling. More on this topic in PCA chapter.
+
+# Life expectancy
+
+Write a function that takes as input a vector of mortality quotients, as well as an age, and returns the residual life expectancy corresponding to the vector and the given age.
+
+```{r}
+# TODO:
+pivot1["2017",]->x
+
+rex<- function(x,y){
+  sum(cumprod(1-x[(y+1):length(x)]))
+}
+
+rex(x, 0)
+
+```
+
+
+Write a function that takes as input
+a _life table_ and returns a matrix $E$ where rows correspond to `Year`
+and columns to `Age` with $E_{t,x}$ equal to the residual life expectancy at age $x$ for year $t$.
+
+```{r}
+# TODO:
+full_rex <- function(lt)
+{
+  # TODO:
+  retype(lt)->lt
+  pivot(lt)->pivottable
+  full <- pivottable
+  for (Year in 1:nrow(pivottable)){
+    for(Age in 1:ncol(pivottable)){
+      full[Year,Age]=rex(pivottable[Year,],Age)
+    }
+  }
+  full
+  
+  
+}
+lt <- readr::read_delim(paste("LIFE_TABLES/FRACNP.fltper_1x1.txt",sep=""), delim = " ")
+
+```
+
+Plot residual life expectancy as a function of `Year` at ages $60$ and $65$.
+You may proceed by first performing aggregation on `data_...` (grouping by `Year`),
+and then compute residual life expectancy at different ages
+by slicing the `mx` column. Recall that when mapping hazard rate to
+residual life expextancy, the order of multiplications matters. How could you secure
+your computation so that it still works if the rows of `data_...` are shuffled ?
+
+Function  `tidyr::pivot_longer` may help.
+
+```{r}
+# TODO:
+full_rex(lt) -> a
+a=a[,c(61,66)]
+a=data.frame(a)
+names(a) <- c("60","65")
+rownames_to_column(a, var ="Year") -> a
+pivot_longer(a,-Year,names_to = "Age", values_to= "rex")->a
+
+a %>% ggplot(mapping= aes(x=Year,y=rex)) +   
+  geom_point() +scale_x_discrete(breaks=a$Year[seq(0,length(a$Year),by=100)])+ scale_y_log10()+
+  facet_wrap(~ Age)
+
+```
+
+# References
+
+- [Human Mortality Database](https://www.mortality.org)
+- [Tables de mortalité françaises, Jacques Vallin et France Meslé](https://www.lifetable.de/data/FRA/FRA000018061997CY1.pdf)
