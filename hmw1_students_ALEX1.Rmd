@@ -361,7 +361,7 @@ full_rex <- function(lt)
   
   
 }
-lt <- readr::read_delim(paste(file_path,sep=""), delim = " ")
+lt <- readr::read_delim(paste(file_path, ".fltper_1x1.txt",sep=""), delim = " ", skip=2)
 
 ```
 
